@@ -2,7 +2,7 @@ var express = require('express');
 var validator = require('validator');
 var mongo = require('mongodb');
 var MongoClient = mongo.MongoClient;
-var url = 'mongodb://localhost:27018/url_short';
+var url = process.env.MONGOLAB_URI;
 var app = express();
 app.set('port', (process.env.PORT || 5000));
 app.use('/new/',function(req,res){
