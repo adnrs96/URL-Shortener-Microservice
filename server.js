@@ -18,6 +18,7 @@ app.use('/new/',function(req,res){
 			else
 			{
 				var urls = db.collection('urls');
+				var su = db.collection('su');
 				urls.find({original_url:new_url}).toArray(function(err,document){
 					//console.log(document);
 					if(err)
@@ -32,20 +33,30 @@ app.use('/new/',function(req,res){
 					{
 						var new_doc = {};
 						new_doc.original_url=new_url;
-						new_doc.short_url=new_url;
-						new_doc.responce={original_url:new_doc.original_url,short_url:new_doc.short_url};
-						urls.insert(new_doc,function(err,data){
+						su.find({}).toArray(function(err,document){
 							if(err)
-							{
-								console.log(err);
-							}
+							console.log(err);
 							else
 							{
-								console.log(JSON.stringify(data));
+								console.log(document[0]);
+								if(document[0]==undefined)
+								{
+									su.insert({count:1},function(err,data){
+										if(err)
+										console.log(err);
+										else
+										{
+											console.log(JSON.stringify(data));
+											shortner(new_doc,su,res,db,urls,1);
+										}
+									});
+								}
+								else
+								{
+									shortner(new_doc,su,res,db,urls,document[0].count);
+								}
 							}
-							db.close();
 						});
-						res.json(new_doc.responce);
 					}
 					
 				});
@@ -55,11 +66,17 @@ app.use('/new/',function(req,res){
 	else
 	{
 		console.log("Doesn't looks like a URL : "+new_url);
+		var new_doc = {};
+		new_doc.error="Invalid URL. Please check the URL format";
+		res.json(new_doc);
 	}
 });
 app.use('/:data',function(req,res){
 	var data = req.params.data;
-	
+	var urls = db.collection('urls');
+	urls.find({short_url:data}).toArray(function(err,document){
+		
+	});
 });
 app.use('/',function(req,res){
 	res.sendFile(__dirname+'/index.html');
@@ -69,3 +86,25 @@ app.use('/',function(req,res){
 app.listen(app.get('port'),function(){
 	console.log('Node server running on port',app.get('port'));
 });
+
+function shortner(new_doc,su,res,db,urls,count){
+											
+											new_doc.short_url=count;
+											su.update({count:new_doc.short_url},{$set:{count:new_doc.short_url+1}});			
+											new_doc.short_url="http://urlshortener-ms.herokuapp.com/"+new_doc.short_url;
+											new_doc.responce={original_url:new_doc.original_url,short_url:new_doc.short_url};
+											urls.ensureIndex( { short_url: "hashed" } );
+											urls.insert(new_doc,function(err,data){
+												if(err)
+												{
+													console.log(err);
+												}
+												else
+												{
+													console.log("New Record Inserted");
+													console.log(JSON.stringify(data));
+												}
+												db.close();
+											});
+									res.json(new_doc.responce);
+}
