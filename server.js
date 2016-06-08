@@ -18,12 +18,13 @@ app.use('/new/',function(req,res){
 			else
 			{
 				var urls = db.collection('urls');
-				urls.find({orginal_url:new_url},function(err,document){
+				urls.find({original_url:new_url}).toArray(function(err,document){
+					//console.log(document);
 					if(err)
 					console.log(err);
 					else if(document.length>0)
 					{
-						res.json(document.responce);
+						res.json(document[0].responce);
 						console.log(new_url+" is already in database.Using it");
 						db.close();
 					}
@@ -55,6 +56,10 @@ app.use('/new/',function(req,res){
 	{
 		console.log("Doesn't looks like a URL : "+new_url);
 	}
+});
+app.use('/:data',function(req,res){
+	var data = req.params.data;
+	
 });
 app.use('/',function(req,res){
 	res.sendFile(__dirname+'/index.html');
