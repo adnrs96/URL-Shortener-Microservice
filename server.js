@@ -73,9 +73,29 @@ app.use('/new/',function(req,res){
 });
 app.use('/:data',function(req,res){
 	var data = req.params.data;
-	var urls = db.collection('urls');
-	urls.find({short_url:data}).toArray(function(err,document){
-		
+	MongoClient.connect(url,function(err,db){
+			if(err)
+			{
+				console.log(err);
+			}
+			else
+			{
+				var urls = db.collection('urls');
+				urls.find({short_url:parseInt(data)}).toArray(function(err,document){
+					console.log("Found This for request of data "+data);
+					console.log(document);
+					if(document[0]==undefined){
+						res.json({Error:"Seems like there is no URL for this Shortner"});
+					}
+					else
+					{
+						var oriurl = document[0].original_url;
+						res.writeHead(301,{Location:oriurl});
+						res.end();
+					}
+					db.close();
+				});
+			}
 	});
 });
 app.use('/',function(req,res){
@@ -91,9 +111,8 @@ function shortner(new_doc,su,res,db,urls,count){
 											
 											new_doc.short_url=count;
 											su.update({count:new_doc.short_url},{$set:{count:new_doc.short_url+1}});			
-											new_doc.short_url="http://urlshortener-ms.herokuapp.com/"+new_doc.short_url;
-											new_doc.responce={original_url:new_doc.original_url,short_url:new_doc.short_url};
-											urls.ensureIndex( { short_url: "hashed" } );
+											new_doc.responce={original_url:new_doc.original_url,short_url:"http://urlshortener-ms.herokuapp.com/"+new_doc.short_url};
+											//urls.ensureIndex( { short_url: "hashed" } );
 											urls.insert(new_doc,function(err,data){
 												if(err)
 												{
